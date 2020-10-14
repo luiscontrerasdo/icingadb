@@ -6,6 +6,7 @@ import (
 	"github.com/Icinga/icingadb/configobject"
 	"github.com/Icinga/icingadb/connection"
 	"github.com/Icinga/icingadb/utils"
+	log "github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -88,6 +89,44 @@ func (h *HostState) InsertValues() []interface{} {
 func (h *HostState) UpdateValues() []interface{} {
 	v := make([]interface{}, 0)
 
+	limit := 65535
+
+	outputVal, truncated := utils.TruncText(h.Output, limit)
+	if truncated {
+		log.WithFields(log.Fields{
+			"Table": "host_state",
+			"Column": "output",
+			"host_id": h.HostId,
+		}).Infof("Truncated plugin output to 64KB")
+	}
+
+	longOutputVal, truncated := utils.TruncText(h.LongOutput, limit)
+	if truncated {
+		log.WithFields(log.Fields{
+			"Table": "host_state",
+			"Column": "long_output",
+			"host_id": h.HostId,
+		}).Infof("Truncated long plugin output to 64KB")
+	}
+
+	perfData, truncated := utils.TruncPerfData(h.PerformanceData, limit)
+	if truncated {
+		log.WithFields(log.Fields{
+			"Table": "host_state",
+			"Column": "performance_data",
+			"host_id": h.HostId,
+		}).Infof("Truncated plugin performance data to 64KB")
+	}
+
+	checkCmdLine, truncated := utils.TruncText(h.CheckCommandline, limit)
+	if truncated {
+		log.WithFields(log.Fields{
+			"Table": "host_state",
+			"Column": "check_commandline",
+			"host_id": h.HostId,
+		}).Infof("Truncated plugin check command line to 64KB")
+	}
+
 	v = append(
 		v,
 		utils.EncodeChecksum(h.EnvId),
@@ -97,10 +136,10 @@ func (h *HostState) UpdateValues() []interface{} {
 		h.PreviousHardState,
 		h.Attempt,
 		h.Severity,
-		h.Output,
-		h.LongOutput,
-		h.PerformanceData,
-		h.CheckCommandline,
+		outputVal,
+		longOutputVal,
+		perfData,
+		checkCmdLine,
 		utils.Bool[h.IsProblem],
 		utils.Bool[h.IsHandled],
 		utils.Bool[h.IsReachable],

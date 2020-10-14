@@ -6,6 +6,7 @@ import (
 	"github.com/Icinga/icingadb/configobject"
 	"github.com/Icinga/icingadb/connection"
 	"github.com/Icinga/icingadb/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -105,6 +106,15 @@ func (s *Service) InsertValues() []interface{} {
 func (s *Service) UpdateValues() []interface{} {
 	v := make([]interface{}, 0)
 
+	notes, truncated := utils.TruncText(s.Notes, 65535)
+	if truncated {
+		log.WithFields(log.Fields{
+			"Table": "service",
+			"Column": "notes",
+			"id": s.Id,
+		}).Infof("Truncated service notes to 64KB")
+	}
+
 	v = append(
 		v,
 		utils.EncodeChecksum(s.EnvId),
@@ -135,7 +145,7 @@ func (s *Service) UpdateValues() []interface{} {
 		utils.Bool[s.IsVolatile],
 		utils.EncodeChecksum(s.ActionUrlId),
 		utils.EncodeChecksum(s.NotesUrlId),
-		s.Notes,
+		notes,
 		utils.EncodeChecksum(s.IconImageId),
 		s.IconImageAlt,
 		s.Zone,

@@ -104,6 +104,16 @@ func notificationHistoryWorker(super *supervisor.Supervisor) {
 	dataFunctions := []func(values map[string]interface{}) []interface{}{
 		func(values map[string]interface{}) []interface{} {
 			id := uuid.MustParse(values["id"].(string))
+
+			text, truncated := utils.TruncText(values["text"].(string), 65535)
+			if truncated {
+				log.WithFields(log.Fields{
+					"Table": "notification_history",
+					"Column": "text",
+					"id": utils.DecodeChecksum(id[:]),
+				}).Infof("Truncated notification message to 64KB")
+			}
+
 			data := []interface{}{
 				id[:],
 				super.EnvId,
@@ -117,7 +127,7 @@ func notificationHistoryWorker(super *supervisor.Supervisor) {
 				values["state"],
 				values["previous_hard_state"],
 				values["author"],
-				values["text"],
+				text,
 				values["users_notified"],
 			}
 
@@ -186,6 +196,25 @@ func stateHistoryWorker(super *supervisor.Supervisor) {
 	dataFunctions := []func(values map[string]interface{}) []interface{}{
 		func(values map[string]interface{}) []interface{} {
 			id := uuid.MustParse(values["id"].(string))
+
+			outputVal, truncated := utils.TruncText(utils.DefaultIfNil(values["output"], "").(string), 65535)
+			if truncated {
+				log.WithFields(log.Fields{
+					"Table": "state_history",
+					"Column": "output",
+					"id": utils.DecodeChecksum(id[:]),
+				}).Infof("Truncated plugin output to 64KB")
+			}
+
+			longOutputVal, truncated := utils.TruncText(utils.DefaultIfNil(values["long_output"], "").(string), 65535)
+			if truncated {
+				log.WithFields(log.Fields{
+					"Table": "state_history",
+					"Column": "long_output",
+					"id": utils.DecodeChecksum(id[:]),
+				}).Infof("Truncated long plugin output to 64KB")
+			}
+
 			stateType, err := strconv.ParseFloat(values["state_type"].(string), 32)
 
 			if err != nil {
@@ -206,8 +235,8 @@ func stateHistoryWorker(super *supervisor.Supervisor) {
 				values["previous_soft_state"],
 				values["previous_hard_state"],
 				values["attempt"],
-				values["output"],
-				values["long_output"],
+				outputVal,
+				longOutputVal,
 				values["max_check_attempts"],
 				values["check_source"],
 			}
@@ -257,6 +286,15 @@ func downtimeHistoryWorker(super *supervisor.Supervisor) {
 				triggeredById = utils.EncodeChecksum(values["triggered_by_id"].(string))
 			}
 
+			comment, truncated := utils.TruncText(values["comment"].(string), 65535)
+			if truncated {
+				log.WithFields(log.Fields{
+					"Table": "downtime_history",
+					"Column": "comment",
+					"downtime_id": values["downtime_id"].(string),
+				}).Infof("Truncated downtime comment message to 64KB")
+			}
+
 			data := []interface{}{
 				utils.EncodeChecksum(values["downtime_id"].(string)),
 				super.EnvId,
@@ -268,7 +306,7 @@ func downtimeHistoryWorker(super *supervisor.Supervisor) {
 				values["entry_time"],
 				values["author"],
 				values["cancelled_by"],
-				values["comment"],
+				comment,
 				utils.RedisIntToDBBoolean(values["is_flexible"]),
 				values["flexible_duration"],
 				values["scheduled_start_time"],
@@ -333,6 +371,15 @@ func commentHistoryWorker(super *supervisor.Supervisor) {
 
 	dataFunctions := []func(values map[string]interface{}) []interface{}{
 		func(values map[string]interface{}) []interface{} {
+			comment, truncated := utils.TruncText(values["comment"].(string), 65535)
+			if truncated {
+				log.WithFields(log.Fields{
+					"Table": "comment_history",
+					"Column": "comment",
+					"comment_id": values["comment_id"].(string),
+				}).Infof("Truncated comment message to 64KB")
+			}
+
 			data := []interface{}{
 				utils.EncodeChecksum(values["comment_id"].(string)),
 				super.EnvId,
@@ -343,7 +390,7 @@ func commentHistoryWorker(super *supervisor.Supervisor) {
 				values["entry_time"],
 				values["author"],
 				values["removed_by"],
-				values["comment"],
+				comment,
 				utils.CommentEntryTypes[values["entry_type"].(string)],
 				utils.RedisIntToDBBoolean(values["is_persistent"]),
 				utils.RedisIntToDBBoolean(values["is_sticky"]),
@@ -484,6 +531,15 @@ func acknowledgementHistoryWorker(super *supervisor.Supervisor) {
 
 	dataFunctions := []func(values map[string]interface{}) []interface{}{
 		func(values map[string]interface{}) []interface{} {
+			comment, truncated := utils.TruncText(utils.DefaultIfNil(values["comment"], "").(string), 65535)
+			if truncated {
+				log.WithFields(log.Fields{
+					"Table": "acknowledgement_history",
+					"Column": "comment",
+					"id": values["id"].(string),
+				}).Infof("Truncated acknowledgement comment message to 64KB")
+			}
+
 			data := []interface{}{
 				utils.EncodeChecksum(values["id"].(string)),
 				super.EnvId,
@@ -495,7 +551,7 @@ func acknowledgementHistoryWorker(super *supervisor.Supervisor) {
 				values["clear_time"],
 				utils.DefaultIfNil(values["author"], ""),
 				values["cleared_by"],
-				utils.DefaultIfNil(values["comment"], ""),
+				utils.DefaultIfNil(interface{}(comment), ""),
 				values["expire_time"],
 				utils.RedisIntToDBBoolean(values["is_sticky"]),
 				utils.RedisIntToDBBoolean(values["is_persistent"]),

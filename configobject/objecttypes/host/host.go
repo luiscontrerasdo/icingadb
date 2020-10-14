@@ -6,6 +6,7 @@ import (
 	"github.com/Icinga/icingadb/configobject"
 	"github.com/Icinga/icingadb/connection"
 	"github.com/Icinga/icingadb/utils"
+	log "github.com/sirupsen/logrus"
 	"net"
 )
 
@@ -110,6 +111,15 @@ func (h *Host) InsertValues() []interface{} {
 func (h *Host) UpdateValues() []interface{} {
 	v := make([]interface{}, 0)
 
+	notes, truncated := utils.TruncText(h.Notes, 65535)
+	if truncated {
+		log.WithFields(log.Fields{
+			"Table": "host",
+			"Column": "notes",
+			"id": h.Id,
+		}).Infof("Truncated host notes to 64KB")
+	}
+
 	v = append(
 		v,
 		utils.EncodeChecksum(h.EnvId),
@@ -143,7 +153,7 @@ func (h *Host) UpdateValues() []interface{} {
 		utils.Bool[h.IsVolatile],
 		utils.EncodeChecksum(h.ActionUrlId),
 		utils.EncodeChecksum(h.NotesUrlId),
-		h.Notes,
+		notes,
 		utils.EncodeChecksum(h.IconImageId),
 		h.IconImageAlt,
 		h.Zone,

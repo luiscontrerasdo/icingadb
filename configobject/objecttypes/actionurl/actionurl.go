@@ -6,6 +6,7 @@ import (
 	"github.com/Icinga/icingadb/configobject"
 	"github.com/Icinga/icingadb/connection"
 	"github.com/Icinga/icingadb/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -38,10 +39,19 @@ func (a *ActionUrl) InsertValues() []interface{} {
 func (a *ActionUrl) UpdateValues() []interface{} {
 	v := make([]interface{}, 0)
 
+	actionUrl, truncated := utils.TruncText(a.ActionUrl, 65535)
+	if truncated {
+		log.WithFields(log.Fields{
+			"Table": "action_url",
+			"Column": "action_url",
+			"id": a.Id,
+		}).Infof("Truncated action url to 64KB")
+	}
+
 	v = append(
 		v,
 		utils.EncodeChecksum(a.EnvId),
-		a.ActionUrl,
+		actionUrl,
 	)
 
 	return v

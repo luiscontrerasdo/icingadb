@@ -6,6 +6,7 @@ import (
 	"github.com/Icinga/icingadb/configobject"
 	"github.com/Icinga/icingadb/connection"
 	"github.com/Icinga/icingadb/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -43,13 +44,22 @@ func (c *NotificationCommandEnvvar) InsertValues() []interface{} {
 func (c *NotificationCommandEnvvar) UpdateValues() []interface{} {
 	v := make([]interface{}, 0)
 
+	envvarVal, truncated := utils.TruncText(c.EnvvarValue, 65535)
+	if truncated {
+		log.WithFields(log.Fields{
+			"Table": "notificationcommand_envvar",
+			"Column": "envvar_value",
+			"id": c.Id,
+		}).Infof("Truncated notification command environment variable value to 64KB")
+	}
+
 	v = append(
 		v,
 		utils.EncodeChecksum(c.CommandId),
 		c.EnvvarKey,
 		utils.EncodeChecksum(c.EnvId),
 		utils.EncodeChecksum(c.PropertiesChecksum),
-		c.EnvvarValue,
+		envvarVal,
 	)
 
 	return v

@@ -116,6 +116,43 @@ func syncStates(super *supervisor.Supervisor, objectType string, counter *uint64
 						isOverdue = time.Now().After(utils.MillisecsToTime(millis))
 					}
 				}
+				limit := 65535
+
+				outputVal, truncated := utils.TruncText(utils.DefaultIfNil(values["output"], "").(string), limit)
+				if truncated {
+					log.WithFields(log.Fields{
+						"Table": objectType+"_state",
+						"Column": "output",
+						objectType+"_id": utils.DecodeChecksum(id),
+					}).Infof("Truncated plugin output to 64KB")
+				}
+
+				longOutputVal, truncated := utils.TruncText(utils.DefaultIfNil(values["long_output"], "").(string), limit)
+				if truncated {
+					log.WithFields(log.Fields{
+						"Table": objectType+"_state",
+						"Column": "long_output",
+						objectType+"_id": utils.DecodeChecksum(id),
+					}).Infof("Truncated long plugin output to 64KB")
+				}
+
+				perfData, truncated := utils.TruncPerfData(utils.DefaultIfNil(values["performance_data"], "").(string), limit)
+				if truncated {
+					log.WithFields(log.Fields{
+						"Table": objectType+"_state",
+						"Column": "performance_data",
+						objectType+"_id": utils.DecodeChecksum(id),
+					}).Infof("Truncated plugin performance data to 64KB")
+				}
+
+				checkCmdLine, truncated := utils.TruncText(utils.DefaultIfNil(values["commandline"], "").(string), limit)
+				if truncated {
+					log.WithFields(log.Fields{
+						"Table": objectType+"_state",
+						"Column": "check_commandline",
+						objectType+"_id": utils.DecodeChecksum(id),
+					}).Infof("Truncated plugin check command line to 64KB")
+				}
 
 				_, errExec := super.Dbw.SqlExecTx(
 					tx,
@@ -131,10 +168,10 @@ func syncStates(super *supervisor.Supervisor, objectType string, counter *uint64
 					values["previous_hard_state"],
 					values["check_attempt"],
 					redisIntToDBInt(values["severity"]),
-					values["output"],
-					values["long_output"],
-					values["performance_data"],
-					values["commandline"],
+					outputVal,
+					longOutputVal,
+					perfData,
+					checkCmdLine,
 					utils.JSONBooleanToDBBoolean(values["is_problem"]),
 					utils.JSONBooleanToDBBoolean(values["is_handled"]),
 					utils.JSONBooleanToDBBoolean(values["is_reachable"]),

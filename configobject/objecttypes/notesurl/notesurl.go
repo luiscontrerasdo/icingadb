@@ -6,6 +6,7 @@ import (
 	"github.com/Icinga/icingadb/configobject"
 	"github.com/Icinga/icingadb/connection"
 	"github.com/Icinga/icingadb/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -38,10 +39,19 @@ func (a *NotesUrl) InsertValues() []interface{} {
 func (a *NotesUrl) UpdateValues() []interface{} {
 	v := make([]interface{}, 0)
 
+	notesUrl, truncated := utils.TruncText(a.NotesUrl, 65535)
+	if truncated {
+		log.WithFields(log.Fields{
+			"Table": "notes_url",
+			"Column": "notes_url",
+			"id": a.Id,
+		}).Infof("Truncated notes url to 64KB")
+	}
+
 	v = append(
 		v,
 		utils.EncodeChecksum(a.EnvId),
-		a.NotesUrl,
+		notesUrl,
 	)
 
 	return v

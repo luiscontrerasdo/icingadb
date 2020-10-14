@@ -6,6 +6,7 @@ import (
 	"github.com/Icinga/icingadb/configobject"
 	"github.com/Icinga/icingadb/connection"
 	"github.com/Icinga/icingadb/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -72,6 +73,16 @@ func (d *Downtime) InsertValues() []interface{} {
 func (d *Downtime) UpdateValues() []interface{} {
 	v := make([]interface{}, 0)
 
+
+	comment, truncated := utils.TruncText(d.Comment, 65535)
+	if truncated {
+		log.WithFields(log.Fields{
+			"Table": "downtime",
+			"Column": "comment",
+			"id": d.Id,
+		}).Infof("Truncated downtime comment message to 64KB")
+	}
+
 	v = append(
 		v,
 		utils.EncodeChecksum(d.EnvId),
@@ -83,7 +94,7 @@ func (d *Downtime) UpdateValues() []interface{} {
 		utils.EncodeChecksum(d.PropertiesChecksum),
 		d.Name,
 		d.Author,
-		d.Comment,
+		comment,
 		d.EntryTime,
 		d.ScheduledStartTime,
 		d.ScheduledEndTime,

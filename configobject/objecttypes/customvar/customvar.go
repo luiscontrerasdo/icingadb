@@ -6,6 +6,7 @@ import (
 	"github.com/Icinga/icingadb/configobject"
 	"github.com/Icinga/icingadb/connection"
 	"github.com/Icinga/icingadb/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -42,12 +43,21 @@ func (c *Customvar) InsertValues() []interface{} {
 func (c *Customvar) UpdateValues() []interface{} {
 	v := make([]interface{}, 0)
 
+	val, truncated := utils.TruncText(c.Value, 65535)
+	if truncated {
+		log.WithFields(log.Fields{
+			"Table": "customvar",
+			"Column": "value",
+			"id": c.Id,
+		}).Infof("Truncated custom variable value to 64KB")
+	}
+
 	v = append(
 		v,
 		utils.EncodeChecksum(c.EnvId),
 		utils.EncodeChecksum(c.NameChecksum),
 		c.Name,
-		c.Value,
+		val,
 	)
 
 	return v

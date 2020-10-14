@@ -6,6 +6,7 @@ import (
 	"github.com/Icinga/icingadb/configobject"
 	"github.com/Icinga/icingadb/connection"
 	"github.com/Icinga/icingadb/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -57,15 +58,33 @@ func (c *CheckCommandArgument) InsertValues() []interface{} {
 func (c *CheckCommandArgument) UpdateValues() []interface{} {
 	v := make([]interface{}, 0)
 
+	argVal, truncated := utils.TruncText(c.ArgumentValue, 65535)
+	if truncated {
+		log.WithFields(log.Fields{
+			"Table": "checkcommand_argument",
+			"Column": "argument_value",
+			"id": c.Id,
+		}).Infof("Truncated check command argument value to 64KB")
+	}
+
+	desc, truncated := utils.TruncText(c.Description, 65535)
+	if truncated {
+		log.WithFields(log.Fields{
+			"Table": "checkcommand_argument",
+			"Column": "description",
+			"id": c.Id,
+		}).Infof("Truncated check command description to 64KB")
+	}
+
 	v = append(
 		v,
 		utils.EncodeChecksum(c.CommandId),
 		c.ArgumentKey,
 		utils.EncodeChecksum(c.EnvId),
 		utils.EncodeChecksum(c.PropertiesChecksum),
-		c.ArgumentValue,
+		argVal,
 		c.ArgumentOrder,
-		c.Description,
+		desc,
 		c.ArgumentKeyOverride,
 		utils.Bool[c.RepeatKey],
 		utils.Bool[c.Required],

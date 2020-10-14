@@ -6,6 +6,7 @@ import (
 	"github.com/Icinga/icingadb/configobject"
 	"github.com/Icinga/icingadb/connection"
 	"github.com/Icinga/icingadb/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -51,6 +52,15 @@ func (c *EventCommand) InsertValues() []interface{} {
 func (c *EventCommand) UpdateValues() []interface{} {
 	v := make([]interface{}, 0)
 
+	cmd, truncated := utils.TruncText(c.Command, 65535)
+	if truncated {
+		log.WithFields(log.Fields{
+			"Table": "eventcommand",
+			"Column": "command",
+			"id": c.Id,
+		}).Infof("Truncated event command to 64KB")
+	}
+
 	v = append(
 		v,
 		utils.EncodeChecksum(c.EnvId),
@@ -59,7 +69,7 @@ func (c *EventCommand) UpdateValues() []interface{} {
 		c.Name,
 		c.NameCi,
 		utils.EncodeChecksum(c.ZoneId),
-		c.Command,
+		cmd,
 		c.Timeout,
 	)
 

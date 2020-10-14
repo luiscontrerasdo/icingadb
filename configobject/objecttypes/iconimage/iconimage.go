@@ -6,6 +6,7 @@ import (
 	"github.com/Icinga/icingadb/configobject"
 	"github.com/Icinga/icingadb/connection"
 	"github.com/Icinga/icingadb/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -38,10 +39,19 @@ func (a *IconImage) InsertValues() []interface{} {
 func (a *IconImage) UpdateValues() []interface{} {
 	v := make([]interface{}, 0)
 
+	iconImg, truncated := utils.TruncText(a.IconImage, 65535)
+	if truncated {
+		log.WithFields(log.Fields{
+			"Table": "icon_image",
+			"Column": "icon_image",
+			"id": a.Id,
+		}).Infof("Truncated icon image to 64KB")
+	}
+
 	v = append(
 		v,
 		utils.EncodeChecksum(a.EnvId),
-		a.IconImage,
+		iconImg,
 	)
 
 	return v

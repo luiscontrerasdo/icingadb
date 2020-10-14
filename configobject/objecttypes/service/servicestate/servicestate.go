@@ -6,6 +6,7 @@ import (
 	"github.com/Icinga/icingadb/configobject"
 	"github.com/Icinga/icingadb/connection"
 	"github.com/Icinga/icingadb/utils"
+	log "github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -88,6 +89,44 @@ func (s *ServiceState) InsertValues() []interface{} {
 func (s *ServiceState) UpdateValues() []interface{} {
 	v := make([]interface{}, 0)
 
+	limit := 65535
+
+	outputVal, truncated := utils.TruncText(s.Output, limit)
+	if truncated {
+		log.WithFields(log.Fields{
+			"Table": "service_state",
+			"Column": "output",
+			"service_id": s.ServiceId,
+		}).Infof("Truncated plugin output to 64KB", )
+	}
+
+	longOutputVal, truncated := utils.TruncText(s.LongOutput, limit)
+	if truncated {
+		log.WithFields(log.Fields{
+			"Table": "service_state",
+			"Column": "long_output",
+			"service_id": s.ServiceId,
+		}).Infof("Truncated long plugin output to 64KB")
+	}
+
+	perfData, truncated := utils.TruncPerfData(s.PerformanceData, limit)
+	if truncated {
+		log.WithFields(log.Fields{
+			"Table": "service_state",
+			"Column": "performance_data",
+			"service_id": s.ServiceId,
+		}).Infof("Truncated plugin performance data to 64KB")
+	}
+
+	checkCmdLine, truncated := utils.TruncText(s.CheckCommandline, limit)
+	if truncated {
+		log.WithFields(log.Fields{
+			"Table": "service_state",
+			"Column": "check_commandline",
+			"service_id": s.ServiceId,
+		}).Infof("Truncated plugin check command line to 64KB")
+	}
+
 	v = append(
 		v,
 		utils.EncodeChecksum(s.EnvId),
@@ -97,10 +136,10 @@ func (s *ServiceState) UpdateValues() []interface{} {
 		s.PreviousHardState,
 		s.Attempt,
 		s.Severity,
-		s.Output,
-		s.LongOutput,
-		s.PerformanceData,
-		s.CheckCommandline,
+		outputVal,
+		longOutputVal,
+		perfData,
+		checkCmdLine,
 		utils.Bool[s.IsProblem],
 		utils.Bool[s.IsHandled],
 		utils.Bool[s.IsReachable],

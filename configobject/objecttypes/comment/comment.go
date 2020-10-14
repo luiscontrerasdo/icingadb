@@ -7,6 +7,7 @@ import (
 	"github.com/Icinga/icingadb/configobject"
 	"github.com/Icinga/icingadb/connection"
 	"github.com/Icinga/icingadb/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -65,6 +66,15 @@ func (c *Comment) InsertValues() []interface{} {
 func (c *Comment) UpdateValues() []interface{} {
 	v := make([]interface{}, 0)
 
+	txt, truncated := utils.TruncText(c.Text, 65535)
+	if truncated {
+		log.WithFields(log.Fields{
+			"Table": "comment",
+			"Column": "text",
+			"id": c.Id,
+		}).Infof("Truncated comment message to 64KB")
+	}
+
 	v = append(
 		v,
 		utils.EncodeChecksum(c.EnvId),
@@ -75,7 +85,7 @@ func (c *Comment) UpdateValues() []interface{} {
 		utils.EncodeChecksum(c.PropertiesChecksum),
 		c.Name,
 		c.Author,
-		c.Text,
+		txt,
 		utils.CommentEntryTypes[fmt.Sprintf("%.0f", c.EntryType)],
 		c.EntryTime,
 		utils.Bool[c.IsPersistent],

@@ -8,6 +8,7 @@ import (
 	"github.com/Icinga/icingadb/configobject"
 	"github.com/Icinga/icingadb/connection"
 	"github.com/Icinga/icingadb/utils"
+	log "github.com/sirupsen/logrus"
 	"strconv"
 )
 
@@ -124,13 +125,23 @@ func (c *CustomvarFlatFinal) InsertValues() []interface{} {
 func (c *CustomvarFlatFinal) UpdateValues() []interface{} {
 	v := make([]interface{}, 0)
 
+	flatVal, truncated := utils.TruncText(c.FlatValue, 65535)
+	if truncated {
+		log.WithFields(log.Fields{
+			"Table": "customvar_flat",
+			"Column": "flatvalue",
+			"id": c.Id,
+		}).Infof("Truncated custom variable flat value to 64KB")
+	}
+
+
 	v = append(
 		v,
 		utils.EncodeChecksum(c.EnvId),
 		utils.EncodeChecksum(c.CustomvarId),
 		utils.EncodeChecksum(c.FlatNameChecksum),
 		c.FlatName,
-		c.FlatValue,
+		flatVal,
 	)
 
 	return v
