@@ -369,18 +369,6 @@ func (dbw *DBWrapper) SqlFetchAll(queryObserver prometheus.Observer, query strin
 	return dbw.sqlFetchAllInternal(dbw.Db, queryObserver, query, false, args...)
 }
 
-func (dbw *DBWrapper) SqlFetchAllQuiet(queryObserver prometheus.Observer, query string, args ...interface{}) ([][]interface{}, error) {
-	return dbw.sqlFetchAllInternal(dbw.Db, queryObserver, query, true, args...)
-}
-
-func (dbw *DBWrapper) SqlFetchAllTx(tx DbTransaction, queryObserver prometheus.Observer, query string, args ...interface{}) ([][]interface{}, error) {
-	return dbw.sqlFetchAllInternal(tx, queryObserver, query, false, args...)
-}
-
-func (dbw *DBWrapper) SqlFetchAllTxQuiet(tx DbTransaction, queryObserver prometheus.Observer, query string, args ...interface{}) ([][]interface{}, error) {
-	return dbw.sqlFetchAllInternal(tx, queryObserver, query, true, args...)
-}
-
 // sqlExecInternal is a wrapper around sql.Exec() for auto-logging.
 func (dbw *DBWrapper) sqlExecInternal(db DbClientOrTransaction, opObserver prometheus.Observer, sql string, quiet bool, args ...interface{}) (sql.Result, error) {
 	for {
