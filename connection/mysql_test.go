@@ -7,6 +7,7 @@ import (
 	"crypto/sha1"
 	"database/sql"
 	"errors"
+	"github.com/Icinga/icingadb/config"
 	"github.com/Icinga/icingadb/config/testbackends"
 	"github.com/Icinga/icingadb/utils"
 	"github.com/go-sql-driver/mysql"
@@ -79,7 +80,7 @@ func NewTestDBW(db DbClient) DBWrapper {
 }
 
 func TestNewDBWrapper(t *testing.T) {
-	dbw, err := NewDBWrapper("asdasd", 50)
+	dbw, err := NewDBWrapper("asdasd", &config.DbInfo{})
 	if err == nil {
 		assert.False(t, dbw.checkConnection(false), "DBWrapper should not be connected")
 	}
@@ -166,7 +167,12 @@ func TestDBWrapper_SqlBegin(t *testing.T) {
 }
 
 func TestDBWrapper_SqlTransaction(t *testing.T) {
-	dbw, err := NewDBWrapper(testbackends.MysqlTestDsn, 50)
+	driver, info, errDI := testbackends.GetDbInfo()
+	if errDI != nil {
+		t.Fatal(errDI)
+	}
+
+	dbw, err := NewDBWrapper(driver, info)
 	require.NoError(t, err, "Is the MySQL server running?")
 
 	err = dbw.SqlTransaction(false, true, false, func(tx DbTransaction) error {
@@ -313,7 +319,12 @@ func TestDBWrapper_SqlFetchAll(t *testing.T) {
 		Name string
 	}
 
-	dbw, err := NewDBWrapper(testbackends.MysqlTestDsn, 50)
+	driver, info, errDI := testbackends.GetDbInfo()
+	if errDI != nil {
+		t.Fatal(errDI)
+	}
+
+	dbw, err := NewDBWrapper(driver, info)
 	require.NoError(t, err, "Is the MySQL server running?")
 
 	_, err = dbw.Db.Exec("CREATE TABLE testing0815 (id INT NOT NULL AUTO_INCREMENT PRIMARY KEY, name varchar(255) NOT NULL)")
@@ -344,7 +355,12 @@ func TestDBWrapper_SqlFetchAll(t *testing.T) {
 }
 
 func TestDBWrapper_SqlFetchIds(t *testing.T) {
-	dbw, err := NewDBWrapper(testbackends.MysqlTestDsn, 50)
+	driver, info, errDI := testbackends.GetDbInfo()
+	if errDI != nil {
+		t.Fatal(errDI)
+	}
+
+	dbw, err := NewDBWrapper(driver, info)
 	require.NoError(t, err, "Is the MySQL server running?")
 
 	hash := sha1.New()
@@ -375,7 +391,12 @@ func TestDBWrapper_SqlFetchIds(t *testing.T) {
 }
 
 func TestDBWrapper_SqlFetchChecksums(t *testing.T) {
-	dbw, err := NewDBWrapper(testbackends.MysqlTestDsn, 50)
+	driver, info, errDI := testbackends.GetDbInfo()
+	if errDI != nil {
+		t.Fatal(errDI)
+	}
+
+	dbw, err := NewDBWrapper(driver, info)
 	require.NoError(t, err, "Is the MySQL server running?")
 
 	envId := utils.Checksum("derp")

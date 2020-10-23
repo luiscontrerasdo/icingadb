@@ -7,41 +7,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/go-sql-driver/mysql"
-	"io/ioutil"
-	oldlog "log"
 	"math"
 	"strconv"
 	"strings"
 )
-
-// mkMysql creates a new MySQL client.
-func mkMysql(dbType string, dbDsn string, maxOpenConns int) (*sql.DB, error) {
-	sep := "?"
-
-	if dbDsn == "" {
-		dbDsn = "/"
-	} else {
-		dsnParts := strings.Split(dbDsn, "/")
-		if strings.Contains(dsnParts[len(dsnParts)-1], "?") {
-			sep = "&"
-		}
-	}
-
-	dbDsn = dbDsn + sep +
-		"innodb_strict_mode=1&sql_mode='STRICT_ALL_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION,PIPES_AS_CONCAT,ANSI_QUOTES,ERROR_FOR_DIVISION_BY_ZERO'"
-
-	db, errConn := sql.Open(dbType, dbDsn)
-	if errConn != nil {
-		return nil, errConn
-	}
-
-	mysql.SetLogger(oldlog.New(ioutil.Discard, "", 0))
-
-	db.SetMaxOpenConns(maxOpenConns)
-	db.SetMaxIdleConns(maxOpenConns)
-
-	return db, nil
-}
 
 var prettyPrintedSqlReplacer = strings.NewReplacer("\n", " ", "\t", "")
 

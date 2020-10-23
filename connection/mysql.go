@@ -7,10 +7,16 @@ import (
 	"database/sql"
 	"fmt"
 	icingaSql "github.com/Icinga/go-libs/sql"
+	"github.com/Icinga/icingadb/config"
 	"github.com/Icinga/icingadb/utils"
+	"github.com/go-sql-driver/mysql"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+	"io/ioutil"
+	oldlog "log"
+	"net"
+	"net/url"
 	"reflect"
 	"strings"
 	"sync"
@@ -79,13 +85,38 @@ type DbTransaction interface {
 	Rollback() error
 }
 
-func NewDBWrapper(dbDsn string, maxOpenConns int) (*DBWrapper, error) {
-	log.Info("Connecting to MySQL")
-	db, err := mkMysql("mysql", dbDsn, maxOpenConns)
+func NewDBWrapper(driver string, info *config.DbInfo) (*DBWrapper, error) {
+	var dsn *url.URL
 
+	switch driver {
+	case "mysql":
+		dsn = &url.URL{
+			User: url.UserPassword(info.User, info.Password),
+			Host: "tcp(" + net.JoinHostPort(info.Host, info.Port) + ")",
+			Path: "/" + info.Database,
+			RawQuery: "innodb_strict_mode=1&sql_mode='STRICT_ALL_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE," +
+				"NO_ENGINE_SUBSTITUTION,PIPES_AS_CONCAT,ANSI_QUOTES,ERROR_FOR_DIVISION_BY_ZERO'",
+		}
+	case "postgres":
+		dsn = &url.URL{
+			Scheme: "postgres",
+			User:   url.UserPassword(info.User, info.Password),
+			Host:   net.JoinHostPort(info.Host, info.Port),
+			Path:   "/" + info.Database,
+		}
+	}
+
+	log.Info("Connecting to database")
+
+	db, err := sql.Open(driver, dsn.String())
 	if err != nil {
 		return nil, err
 	}
+
+	mysql.SetLogger(oldlog.New(ioutil.Discard, "", 0))
+
+	db.SetMaxOpenConns(info.MaxOpenConns)
+	db.SetMaxIdleConns(info.MaxOpenConns)
 
 	dbw := DBWrapper{Db: db, ConnectedAtomic: new(uint32), ConnectionLostCounterAtomic: new(uint32)}
 	dbw.ConnectionUpCondition = sync.NewCond(&sync.Mutex{})

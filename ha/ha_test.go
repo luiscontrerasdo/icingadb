@@ -19,9 +19,14 @@ import (
 )
 
 func createTestingHA(t *testing.T, redisAddr string) *HA {
+	driver, info, errDI := testbackends.GetDbInfo()
+	if errDI != nil {
+		t.Fatal(errDI)
+	}
+
 	redisConn := connection.NewRDBWrapper(redisAddr, 64)
 
-	mysqlConn, err := connection.NewDBWrapper(testbackends.MysqlTestDsn, 50)
+	mysqlConn, err := connection.NewDBWrapper(driver, info)
 	if err != nil {
 		assert.Fail(t, "This test needs a working Redis connection!")
 	}

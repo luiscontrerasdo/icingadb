@@ -21,8 +21,13 @@ import (
 var mysqlTestObserver = connection.DbIoSeconds.WithLabelValues("mysql", "test")
 
 func SetupConfigSync(t *testing.T, objectTypes []*configobject.ObjectInformation) (*supervisor.Supervisor, []chan int) {
+	driver, info, errDI := testbackends.GetDbInfo()
+	if errDI != nil {
+		t.Fatal(errDI)
+	}
+
 	rdbw := connection.NewRDBWrapper(testbackends.RedisTestAddr, 64)
-	dbw, err := connection.NewDBWrapper(testbackends.MysqlTestDsn, 50)
+	dbw, err := connection.NewDBWrapper(driver, info)
 	require.NoError(t, err, "Is the MySQL server running?")
 
 	super := supervisor.Supervisor{
